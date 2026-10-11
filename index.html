@@ -78,7 +78,7 @@ label{display:block;font-size:13px;color:var(--muted);margin:10px 0 3px}
   <b style="display:block;margin-top:14px">Análise por IA (opcional)</b>
   <p class="note">Opcional e paga. Sem ela, o app escreve uma análise automática gratuita.</p>
   <label>Chave Anthropic</label><input id="k2" type="password" autocomplete="off" placeholder="sk-ant-...">
-  <button class="btn" id="sv">Guardar</button><p class="note" id="svm"></p>
+  <button class="btn" id="sv">Guardar</button><button class="btn ghost" id="tst">Testar chave</button><p class="note" id="svm"></p>
   <p class="note">As chaves ficam guardadas apenas neste dispositivo.</p>
  </div>
 </section>
@@ -86,6 +86,7 @@ label{display:block;font-size:13px;color:var(--muted);margin:10px 0 3px}
 <dialog id="dlg"><div class="sh" id="sh"></div></dialog>
 <script>
 const $=id=>document.getElementById(id);
+const clean=v=>v.replace(/[\s"'<>]/g,"");
 const S={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const BASE="https://v3.football.api-sports.io",TZ=Intl.DateTimeFormat().resolvedOptions().timeZone||"UTC";
 const TOP=[2,3,848,39,140,135,78,61,94,88,71,13,253,1,4,6,9];
@@ -96,7 +97,7 @@ const ymd=d=>{const z=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+z(
 async function api(path,ttl,map){
  const ck="c:"+path,c=JSON.parse(S.get(ck)||"null");
  if(c&&Date.now()-c.t<ttl)return c.d;
- const key=S.get("k1");if(!key)throw new Error("NOKEY");
+ const key=clean(S.get("k1")||"");if(!key)throw new Error("NOKEY");
  const r=await fetch(BASE+path,{headers:{"x-apisports-key":key}});
  const rem=r.headers.get("x-ratelimit-requests-remaining");if(rem!=null)$("quota").textContent="Pedidos hoje: "+rem+" restantes";
  const j=await r.json(),e=j.errors,m=Array.isArray(e)?e[0]:e&&Object.values(e)[0];
@@ -122,6 +123,7 @@ async function load(){
 }
 function err(e){
  if(e.message==="NOKEY")return "Para ver os jogos reais, guarde a chave da API-Football em Definições.";
+ if(/key/i.test(e.message))return "A API recusou a chave. Em Definições, apague a chave, cole-a de novo (só a chave, sem espaços) e toque em Testar chave.";
  if(/plan|season|Free/i.test(e.message))return "A sua chave não dá acesso a estes dados (limite do plano): "+e.message;
  if(/limit|request/i.test(e.message))return "Limite diário de pedidos atingido. Volte amanhã ou use um plano superior.";
  return "Não foi possível carregar ("+e.message+"). Verifique a ligação.";
@@ -215,7 +217,14 @@ function hist(){
  $("hl").querySelectorAll("button").forEach(b=>b.onclick=()=>{h.splice(+b.dataset.i,1);S.set("hist",JSON.stringify(h));hist()});
 }
 $("clr").onclick=()=>{S.set("hist","[]");hist()};
-$("sv").onclick=()=>{S.set("k1",$("k1").value.trim());S.set("k2",$("k2").value.trim());$("svm").textContent="Guardado.";load()};
+$("sv").onclick=()=>{const k=clean($("k1").value);$("k1").value=k;S.set("k1",k);S.set("k2",clean($("k2").value));
+ $("svm").textContent=k&&!/^[a-f0-9]{32}$/i.test(k)?"Guardado, mas a chave tem "+k.length+" caracteres e devia ter 32 (letras e números). Confirme se copiou a chave completa.":"Guardado.";load()};
+$("tst").onclick=async()=>{const k=clean($("k1").value),o=$("svm");if(!k){o.textContent="Cole primeiro a chave.";return}
+ o.textContent="A testar…";
+ try{const r=await fetch(BASE+"/status",{headers:{"x-apisports-key":k}}),j=await r.json(),e=j.errors,m=Array.isArray(e)?e[0]:e&&Object.values(e)[0];
+  if(m)throw new Error(String(m));const a=j.response;
+  o.textContent="Chave válida. Plano: "+a.subscription.plan+". Pedidos hoje: "+a.requests.current+" de "+a.requests.limit_day+"."}
+ catch(e){o.textContent="Chave recusada: "+e.message}};
 $("k1").value=S.get("k1")||"";$("k2").value=S.get("k2")||"";
 $("q").oninput=draw;$("all").onclick=()=>{topOnly=!topOnly;draw()};
 ["t1","t2","t3"].forEach((t,i)=>$(t).onclick=()=>{["t1","t2","t3"].forEach((u,j)=>{$(u).classList.toggle("on",i==j);$("p"+(j+1)).hidden=i!=j});if(i==1)hist()});
