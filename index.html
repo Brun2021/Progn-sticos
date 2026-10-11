@@ -76,7 +76,7 @@ label{display:block;font-size:13px;color:var(--muted);margin:10px 0 3px}
   <p class="note">Chave gratuita da API-Football (api-football.com, criar conta em dashboard.api-football.com). O plano gratuito dá 100 pedidos por dia e cobre todas as ligas, mas o acesso a épocas recentes depende do plano; se a sua chave não incluir a época atual, a app avisa.</p>
   <label>Chave API-Football</label><input id="k1" type="password" autocomplete="off" placeholder="Cole a chave aqui">
   <b style="display:block;margin-top:14px">Análise por IA (opcional)</b>
-  <p class="note">Chave da API Anthropic. Sem ela, o modelo estatístico funciona na mesma.</p>
+  <p class="note">Opcional e paga. Sem ela, o app escreve uma análise automática gratuita.</p>
   <label>Chave Anthropic</label><input id="k2" type="password" autocomplete="off" placeholder="sk-ant-...">
   <button class="btn" id="sv">Guardar</button><p class="note" id="svm"></p>
   <p class="note">As chaves ficam guardadas apenas neste dispositivo.</p>
@@ -180,16 +180,30 @@ async function open(x){
   <div class="legend"><span>1 · odd justa ${od(r.H)}</span><span>X · ${od(r.D)}</span><span>2 · ${od(r.A)}</span></div>
   <div class="stats"><div class="stat"><b>${f2(r.lh)} – ${f2(r.la)}</b><span>Golos esperados</span></div><div class="stat"><b>${r.sc[0][0]}</b><span>Mais provável (${pc(r.sc[0][1])})</span></div><div class="stat"><b>${pc(r.O)}</b><span>Mais de 2,5 golos</span></div><div class="stat"><b>${pc(r.B)}</b><span>Ambas marcam</span></div></div>
   <p class="note">${d.info}. Fonte: ${d.src}, com ajuste à forma recente. “Odd justa” é a odd sem margem implícita nas probabilidades; compare com o mercado só como referência.</p>
-  <button class="btn alt" id="ia">Pedir análise da IA</button><div class="ai" id="aiout"></div><button class="btn ghost" id="cl">Fechar</button>`;
+  <button class="btn alt" id="ia">Ver análise do jogo</button><div class="ai" id="aiout"></div><button class="btn ghost" id="cl">Fechar</button>`;
   $("cl").onclick=()=>$("dlg").close();$("ia").onclick=ai;
   const h=JSON.parse(S.get("hist")||"[]").filter(z=>z.id!==x.id);
   h.unshift({id:x.id,hn:x.h.n,an:x.a.n,lg:x.lg.n,H:r.H,D:r.D,A:r.A,s:r.sc[0][0],d:new Date(x.ts*1000).toLocaleDateString("pt-PT")});S.set("hist",JSON.stringify(h.slice(0,60)));
  }catch(e){$("sh").innerHTML=`<div class="msg">${err(e)}</div><button class="btn ghost" id="cl">Fechar</button>`;$("cl").onclick=()=>$("dlg").close()}
 }
+function local(x,d,r){
+ const h=x.h.n,a=x.a.n,L=[],m=Math.max(r.H,r.D,r.A),diff=Math.abs(r.H-r.A);
+ if(m<.4)L.push("Jogo muito equilibrado: nenhuma das hipóteses passa dos 40%, por isso o modelo vê empate ou vitória curta como cenários reais.");
+ else if(r.H===m)L.push(h+" parte como favorito ("+pc(r.H)+"), com vantagem de jogar em casa e números ofensivos/defensivos superiores aos de "+a+".");
+ else if(r.A===m)L.push(a+" é favorito mesmo a jogar fora ("+pc(r.A)+"), o que indica uma diferença clara de qualidade face a "+h+".");
+ else L.push("O empate é o cenário mais provável ("+pc(r.D)+"), sinal de duas equipas com força semelhante.");
+ if(d.fH-d.fA>.2)L.push(h+" chega em melhor forma recente que "+a+".");
+ else if(d.fA-d.fH>.2)L.push(a+" chega em melhor forma recente que "+h+".");
+ const t=r.lh+r.la;
+ L.push(t>=2.9?"Espera-se um jogo aberto ("+f2(t)+" golos esperados): "+pc(r.O)+" para mais de 2,5 e "+pc(r.B)+" para ambas marcarem.":t<=2.2?"Espera-se um jogo fechado ("+f2(t)+" golos esperados): mais de 2,5 só tem "+pc(r.O)+".":"Golos esperados moderados ("+f2(t)+"); mais de 2,5 está nos "+pc(r.O)+".");
+ L.push("Resultado mais provável: "+r.sc[0][0]+" ("+pc(r.sc[0][1])+"), mas cada resultado exato tem sempre probabilidade baixa.");
+ L.push("O modelo não vê lesões, suspensões, rotação de equipa, clima nem motivação. Confirme as escalações antes do jogo"+(diff<.1&&m>=.4?" e trate este prognóstico com mais cautela.":"."));
+ return L.join("\n\n");
+}
 async function ai(){
  const key=S.get("k2"),out=$("aiout");
- if(!key){out.textContent="Para a análise da IA, guarde a chave Anthropic em Definições.";return}
- const{x,d,r}=cur;out.textContent="A analisar…";
+ const{x,d,r}=cur;
+ if(!key){out.textContent=local(x,d,r);return}out.textContent="A analisar…";
  const p=`Jogo: ${x.h.n} (casa) vs ${x.a.n} (fora), ${x.lg.n} (${x.lg.c}). ${d.info}. Modelo de Poisson com dados reais da época: golos esperados ${f2(r.lh)} vs ${f2(r.la)}; vitória casa ${pc(r.H)}, empate ${pc(r.D)}, fora ${pc(r.A)}; mais de 2,5 golos ${pc(r.O)}; ambas marcam ${pc(r.B)}; resultado mais provável ${r.sc[0][0]}. Escreve em português de Portugal, 4 a 6 linhas, uma análise prudente: o que sustenta o prognóstico, os riscos que o modelo não vê (lesões, suspensões, rotação, motivação, calendário) e o que verificar antes do jogo. Não garantas resultados nem incentives apostas.`;
  try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:p}]})});
   const j=await res.json();if(!res.ok)throw new Error(j.error&&j.error.message||res.status);out.textContent=j.content.map(b=>b.text||"").join("")}
