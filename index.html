@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1d5a3a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>Prognóstico IA</title>
+<style>
+:root{--turf:#1d5a3a;--chalk:#f6f4ec;--ink:#1b2420;--panel:#ebe8dc;--line:#d2cebd;--yellow:#f0c030;--red:#c8372d;--blue:#2d5fa8;--muted:#5e665f}
+@media(prefers-color-scheme:dark){:root{--chalk:#141a17;--ink:#eef0e8;--panel:#1d2621;--line:#33403a;--muted:#9aa59d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--chalk);color:var(--ink);font:16px/1.4 "Segoe UI",system-ui,sans-serif}
+header{background:var(--turf);color:#f6f4ec;padding:calc(env(safe-area-inset-top) + 14px) 16px 14px;position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center}
+h1{margin:0;font:800 24px/1 "Arial Narrow","Franklin Gothic Medium",Impact,sans-serif;letter-spacing:.5px}
+#quota{font-size:12px;opacity:.85;text-align:right}
+nav{display:flex;gap:6px;padding:10px 12px 0;max-width:640px;margin:auto}
+nav button{flex:1;padding:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;font-weight:600;font-size:15px}
+nav button.on{background:var(--ink);color:var(--chalk);border-color:var(--ink)}
+main{padding:12px;max-width:640px;margin:auto}
+.days{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.days button{flex:0 0 auto;min-width:54px;padding:6px 8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;text-align:center;font-size:12px}
+.days button b{display:block;font-size:18px}
+.days button.on{background:var(--turf);color:#fff;border-color:var(--turf)}
+.tools{display:flex;gap:8px;margin:6px 0 10px}
+input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font-size:16px}
+.chip{flex:0 0 auto;width:auto;padding:0 14px;font-weight:600}
+input:focus,button:focus-visible,select:focus{outline:2px solid var(--blue);outline-offset:1px}
+.lg{display:flex;align-items:center;gap:8px;margin:14px 2px 6px;font-weight:700;font-size:14px}
+.lg img{width:20px;height:20px;object-fit:contain}.lg small{color:var(--muted);font-weight:400}
+.m{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:6px;color:var(--ink);font-size:15px}
+.m .t{font-size:13px;color:var(--muted);font-weight:600}
+.m .tm{display:flex;align-items:center;gap:6px;margin:1px 0}.m img{width:18px;height:18px;object-fit:contain}
+.m .sc{font-weight:800;font-size:16px;text-align:right}.m .sc div{margin:1px 0}
+.live{color:var(--red)}
+.btn{width:100%;padding:14px;border:0;border-radius:10px;background:var(--turf);color:#fff;font-size:16px;font-weight:700;margin-top:8px}
+.btn.alt{background:var(--ink);color:var(--chalk)}.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+dialog{border:0;padding:0;width:100%;max-width:640px;max-height:92vh;margin:auto auto 0;border-radius:16px 16px 0 0;background:var(--chalk);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.sh{padding:16px 16px calc(env(safe-area-inset-bottom) + 16px)}
+.vs{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.vs b{font-size:15px}.vs small,.note{color:var(--muted);font-size:12.5px}
+.verdict{font:800 24px/1.15 "Arial Narrow",Impact,sans-serif;margin:12px 0 6px}
+.tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:13px;font-weight:700;color:#1b2420}
+.alta{background:#7bc47f}.media{background:var(--yellow)}.baixa{background:#e59a92}
+.bar{display:flex;height:34px;border-radius:8px;overflow:hidden;margin:12px 0 4px;font-weight:700;font-size:14px;color:#fff}
+.bar div{display:flex;align-items:center;justify-content:center;min-width:0}
+.legend{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.stat b{font-size:19px;display:block}.stat span{font-size:12px;color:var(--muted)}
+.ai{white-space:pre-wrap;font-size:15px;margin-top:8px}
+.hist{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.hist:last-child{border:0}.hist button{border:0;background:none;color:var(--red);font-size:22px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 3px}
+.msg{padding:14px;text-align:center;color:var(--muted)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><h1>Prognóstico IA</h1><div id="quota"></div></header>
+<nav><button id="t1" class="on">Jogos</button><button id="t2">Histórico</button><button id="t3">Definições</button></nav>
+<main>
+<section id="p1">
+ <div class="days" id="days"></div>
+ <div class="tools"><input id="q" type="search" placeholder="Procurar equipa, liga ou país"><button class="chip" id="all" style="border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)">Principais</button></div>
+ <div id="list"><div class="msg">A carregar jogos…</div></div>
+ <p class="note">Estimativas estatísticas, sem garantia de resultado. Não é aconselhamento para apostas; jogue com responsabilidade e apenas se for maior de idade.</p>
+</section>
+<section id="p2" hidden><div class="card" id="hl"></div><button class="btn ghost" id="clr">Limpar histórico</button></section>
+<section id="p3" hidden>
+ <div class="card">
+  <b>Dados dos jogos (obrigatório)</b>
+  <p class="note">Chave gratuita da API-Football (api-football.com, criar conta em dashboard.api-football.com). O plano gratuito dá 100 pedidos por dia e cobre todas as ligas, mas o acesso a épocas recentes depende do plano; se a sua chave não incluir a época atual, a app avisa.</p>
+  <label>Chave API-Football</label><input id="k1" type="password" autocomplete="off" placeholder="Cole a chave aqui">
+  <b style="display:block;margin-top:14px">Análise por IA (opcional)</b>
+  <p class="note">Chave da API Anthropic. Sem ela, o modelo estatístico funciona na mesma.</p>
+  <label>Chave Anthropic</label><input id="k2" type="password" autocomplete="off" placeholder="sk-ant-...">
+  <button class="btn" id="sv">Guardar</button><p class="note" id="svm"></p>
+  <p class="note">As chaves ficam guardadas apenas neste dispositivo.</p>
+ </div>
+</section>
+</main>
+<dialog id="dlg"><div class="sh" id="sh"></div></dialog>
+<script>
+const $=id=>document.getElementById(id);
+const S={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const BASE="https://v3.football.api-sports.io",TZ=Intl.DateTimeFormat().resolvedOptions().timeZone||"UTC";
+const TOP=[2,3,848,39,140,135,78,61,94,88,71,13,253,1,4,6,9];
+const pc=v=>Math.round(v*100)+"%",f2=v=>v.toFixed(2);
+let day=new Date(),FX=[],topOnly=true,cur=null;
+const ymd=d=>{const z=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate())};
+
+async function api(path,ttl,map){
+ const ck="c:"+path,c=JSON.parse(S.get(ck)||"null");
+ if(c&&Date.now()-c.t<ttl)return c.d;
+ const key=S.get("k1");if(!key)throw new Error("NOKEY");
+ const r=await fetch(BASE+path,{headers:{"x-apisports-key":key}});
+ const rem=r.headers.get("x-ratelimit-requests-remaining");if(rem!=null)$("quota").textContent="Pedidos hoje: "+rem+" restantes";
+ const j=await r.json(),e=j.errors,m=Array.isArray(e)?e[0]:e&&Object.values(e)[0];
+ if(m)throw new Error(String(m));
+ const d=map?map(j.response):j.response;
+ for(const k in localStorage)if(k.startsWith("c:")&&k!==ck&&Date.now()-(JSON.parse(S.get(k)||"{}").t||0)>864e5)S.del(k);
+ S.set(ck,JSON.stringify({t:Date.now(),d}));return d;
+}
+const slim=r=>r.map(x=>({id:x.fixture.id,ts:x.fixture.timestamp,st:x.fixture.status.short,el:x.fixture.status.elapsed,
+ lg:{id:x.league.id,n:x.league.name,c:x.league.country,s:x.league.season,l:x.league.logo},
+ h:{id:x.teams.home.id,n:x.teams.home.name,l:x.teams.home.logo,g:x.goals.home},a:{id:x.teams.away.id,n:x.teams.away.name,l:x.teams.away.logo,g:x.goals.away}}));
+
+function days(){
+ const el=$("days");el.innerHTML="";
+ for(let i=-2;i<=5;i++){const d=new Date();d.setDate(d.getDate()+i);
+  const b=document.createElement("button");b.innerHTML=d.toLocaleDateString("pt-PT",{weekday:"short"})+"<b>"+d.getDate()+"</b>";
+  if(ymd(d)===ymd(day))b.className="on";b.onclick=()=>{day=d;days();load()};el.appendChild(b)}
+}
+async function load(){
+ $("list").innerHTML='<div class="msg">A carregar jogos…</div>';
+ try{FX=await api("/fixtures?date="+ymd(day)+"&timezone="+encodeURIComponent(TZ),ymd(day)===ymd(new Date())?18e5:216e5,slim);draw()}
+ catch(e){$("list").innerHTML='<div class="msg">'+err(e)+"</div>"}
+}
+function err(e){
+ if(e.message==="NOKEY")return "Para ver os jogos reais, guarde a chave da API-Football em Definições.";
+ if(/plan|season|Free/i.test(e.message))return "A sua chave não dá acesso a estes dados (limite do plano): "+e.message;
+ if(/limit|request/i.test(e.message))return "Limite diário de pedidos atingido. Volte amanhã ou use um plano superior.";
+ return "Não foi possível carregar ("+e.message+"). Verifique a ligação.";
+}
+function draw(){
+ const q=$("q").value.toLowerCase().trim();let L=FX;
+ if(q)L=L.filter(x=>(x.h.n+x.a.n+x.lg.n+x.lg.c).toLowerCase().includes(q));
+ else if(topOnly)L=L.filter(x=>TOP.includes(x.lg.id));
+ $("all").textContent=topOnly?"Principais":"Todas";
+ if(!L.length){$("list").innerHTML='<div class="msg">'+(FX.length?"Sem jogos nas ligas principais neste dia. Toque em “Principais” para ver todas as ligas.":"Sem jogos neste dia.")+"</div>";return}
+ const g={};L.forEach(x=>(g[x.lg.id]=g[x.lg.id]||[]).push(x));
+ const ids=Object.keys(g).sort((a,b)=>{const ia=TOP.indexOf(+a),ib=TOP.indexOf(+b);return (ia<0?99:ia)-(ib<0?99:ib)||g[a][0].lg.c.localeCompare(g[b][0].lg.c)});
+ $("list").innerHTML=ids.map(id=>{const l=g[id][0].lg;return `<div class="lg"><img src="${l.l}" alt="" loading="lazy" onerror="this.remove()">${l.n} <small>${l.c}</small></div>`+
+  g[id].sort((a,b)=>a.ts-b.ts).map(x=>{const live=["1H","2H","HT","ET","LIVE"].includes(x.st),done=["FT","AET","PEN"].includes(x.st);
+   const tm=new Date(x.ts*1000).toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"});
+   return `<button class="m" data-id="${x.id}"><div class="t ${live?"live":""}">${live?(x.el||"")+"'":done?"FIM":tm}</div><div><div class="tm"><img src="${x.h.l}" alt="" onerror="this.remove()">${x.h.n}</div><div class="tm"><img src="${x.a.l}" alt="" onerror="this.remove()">${x.a.n}</div></div><div class="sc">${x.h.g!=null?`<div>${x.h.g}</div><div>${x.a.g}</div>`:"›"}</div></button>`}).join("")}).join("");
+ $("list").querySelectorAll(".m").forEach(b=>b.onclick=()=>open(FX.find(x=>x.id==b.dataset.id)));
+}
+
+const fact=n=>n<2?1:n*fact(n-1),pois=(l,k)=>Math.exp(-l)*Math.pow(l,k)/fact(k);
+const shr=(s,p,avg,k=4)=>(s+k*avg)/(p+k);
+const pts=f=>f?[...f.slice(-5)].reduce((a,c)=>a+(c==="W"?3:c==="D"?1:0),0)/(Math.min(5,f.length)*3):.5;
+function model(d){
+ let lh=Math.max(.2,d.atkH*d.defA/d.lgH)*(1+.1*(d.fH-.5)),la=Math.max(.2,d.atkA*d.defH/d.lgA)*(1+.1*(d.fA-.5));
+ let H=0,D=0,A=0,O=0,B=0,T=0,sc=[];
+ for(let x=0;x<=9;x++)for(let y=0;y<=9;y++){const p=pois(lh,x)*pois(la,y);T+=p;
+  if(x>y)H+=p;else if(x==y)D+=p;else A+=p;if(x+y>2)O+=p;if(x>0&&y>0)B+=p;sc.push([x+"-"+y,p])}
+ sc.sort((a,b)=>b[1]-a[1]);
+ return{lh,la,H:H/T,D:D/T,A:A/T,O:O/T,B:B/T,sc:sc.slice(0,3).map(s=>[s[0],s[1]/T])};
+}
+async function inputs(x){
+ const lg=x.lg,rows=await api("/standings?league="+lg.id+"&season="+lg.s,432e5,r=>r[0]?r[0].league.standings.flat().map(t=>({id:t.team.id,rk:t.rank,f:t.form||"",h:t.home,a:t.away})):[]);
+ const H=rows.find(t=>t.id==x.h.id),A=rows.find(t=>t.id==x.a.id);
+ if(H&&A&&H.h.played>0&&A.a.played>0){
+  let hp=0,hg=0,ap=0,ag=0;rows.forEach(t=>{hp+=t.h.played;hg+=t.h.goals.for;ap+=t.a.played;ag+=t.a.goals.for});
+  const lgH=hg/hp||1.5,lgA=ag/ap||1.2;
+  return{lgH,lgA,atkH:shr(H.h.goals.for,H.h.played,lgH),defH:shr(H.h.goals.against,H.h.played,lgA),atkA:shr(A.a.goals.for,A.a.played,lgA),defA:shr(A.a.goals.against,A.a.played,lgH),
+   fH:pts(H.f),fA:pts(A.f),info:`${x.h.n} ${H.rk}º (forma ${H.f.slice(-5)||"n/d"}); ${x.a.n} ${A.rk}º (forma ${A.f.slice(-5)||"n/d"})`,src:"Classificação da liga"};
+ }
+ const st=async t=>api("/teams/statistics?league="+lg.id+"&season="+lg.s+"&team="+t,432e5,r=>({f:r.form||"",g:r.goals}));
+ const [h,a]=await Promise.all([st(x.h.id),st(x.a.id)]);
+ const n=v=>parseFloat(v)||0;
+ return{lgH:1.5,lgA:1.2,atkH:n(h.g.for.average.home)||1.5,defH:n(h.g.against.average.home)||1.2,atkA:n(a.g.for.average.away)||1.2,defA:n(a.g.against.average.away)||1.5,fH:pts(h.f),fA:pts(a.f),info:`Forma: ${x.h.n} ${h.f.slice(-5)||"n/d"}; ${x.a.n} ${a.f.slice(-5)||"n/d"}`,src:"Estatísticas da equipa"};
+}
+async function open(x){
+ cur={x};$("sh").innerHTML=`<div class="msg">A calcular…</div>`;$("dlg").showModal();
+ try{const d=await inputs(x),r=model(d);cur={x,d,r};
+  const m=Math.max(r.H,r.D,r.A);let v;
+  if(m<.4)v="Jogo equilibrado: dupla hipótese "+(r.H>=r.A?"1X ("+x.h.n+" ou empate)":"X2 ("+x.a.n+" ou empate)");
+  else v=m===r.H?"Vitória de "+x.h.n:m===r.A?"Vitória de "+x.a.n:"Empate";
+  const c=m>=.55?["alta","Confiança alta"]:m>=.42?["media","Confiança média"]:["baixa","Confiança baixa"];
+  const od=p=>(1/p).toFixed(2);
+  $("sh").innerHTML=`<div class="vs"><div><b>${x.h.n}</b><br><b>${x.a.n}</b></div><small>${x.lg.n}<br>${new Date(x.ts*1000).toLocaleString("pt-PT",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</small></div>
+  <p class="verdict">${v}</p><span class="tag ${c[0]}">${c[1]} · ${pc(m)}</span>
+  <div class="bar"><div style="flex:${r.H};background:var(--turf)">${pc(r.H)}</div><div style="flex:${r.D};background:#8a8f86">${pc(r.D)}</div><div style="flex:${r.A};background:var(--blue)">${pc(r.A)}</div></div>
+  <div class="legend"><span>1 · odd justa ${od(r.H)}</span><span>X · ${od(r.D)}</span><span>2 · ${od(r.A)}</span></div>
+  <div class="stats"><div class="stat"><b>${f2(r.lh)} – ${f2(r.la)}</b><span>Golos esperados</span></div><div class="stat"><b>${r.sc[0][0]}</b><span>Mais provável (${pc(r.sc[0][1])})</span></div><div class="stat"><b>${pc(r.O)}</b><span>Mais de 2,5 golos</span></div><div class="stat"><b>${pc(r.B)}</b><span>Ambas marcam</span></div></div>
+  <p class="note">${d.info}. Fonte: ${d.src}, com ajuste à forma recente. “Odd justa” é a odd sem margem implícita nas probabilidades; compare com o mercado só como referência.</p>
+  <button class="btn alt" id="ia">Pedir análise da IA</button><div class="ai" id="aiout"></div><button class="btn ghost" id="cl">Fechar</button>`;
+  $("cl").onclick=()=>$("dlg").close();$("ia").onclick=ai;
+  const h=JSON.parse(S.get("hist")||"[]").filter(z=>z.id!==x.id);
+  h.unshift({id:x.id,hn:x.h.n,an:x.a.n,lg:x.lg.n,H:r.H,D:r.D,A:r.A,s:r.sc[0][0],d:new Date(x.ts*1000).toLocaleDateString("pt-PT")});S.set("hist",JSON.stringify(h.slice(0,60)));
+ }catch(e){$("sh").innerHTML=`<div class="msg">${err(e)}</div><button class="btn ghost" id="cl">Fechar</button>`;$("cl").onclick=()=>$("dlg").close()}
+}
+async function ai(){
+ const key=S.get("k2"),out=$("aiout");
+ if(!key){out.textContent="Para a análise da IA, guarde a chave Anthropic em Definições.";return}
+ const{x,d,r}=cur;out.textContent="A analisar…";
+ const p=`Jogo: ${x.h.n} (casa) vs ${x.a.n} (fora), ${x.lg.n} (${x.lg.c}). ${d.info}. Modelo de Poisson com dados reais da época: golos esperados ${f2(r.lh)} vs ${f2(r.la)}; vitória casa ${pc(r.H)}, empate ${pc(r.D)}, fora ${pc(r.A)}; mais de 2,5 golos ${pc(r.O)}; ambas marcam ${pc(r.B)}; resultado mais provável ${r.sc[0][0]}. Escreve em português de Portugal, 4 a 6 linhas, uma análise prudente: o que sustenta o prognóstico, os riscos que o modelo não vê (lesões, suspensões, rotação, motivação, calendário) e o que verificar antes do jogo. Não garantas resultados nem incentives apostas.`;
+ try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:p}]})});
+  const j=await res.json();if(!res.ok)throw new Error(j.error&&j.error.message||res.status);out.textContent=j.content.map(b=>b.text||"").join("")}
+ catch(e){out.textContent="Não foi possível obter a análise ("+e.message+")."}
+}
+function hist(){
+ const h=JSON.parse(S.get("hist")||"[]");
+ $("hl").innerHTML=h.length?h.map((x,i)=>`<div class="hist"><div><b>${x.hn} vs ${x.an}</b><br><small class="note">${x.lg} · ${x.d} · ${pc(x.H)} / ${pc(x.D)} / ${pc(x.A)} · ${x.s}</small></div><button data-i="${i}" aria-label="Apagar">×</button></div>`).join(""):"<p class='note'>Ainda não há prognósticos. Abra um jogo no separador Jogos.</p>";
+ $("hl").querySelectorAll("button").forEach(b=>b.onclick=()=>{h.splice(+b.dataset.i,1);S.set("hist",JSON.stringify(h));hist()});
+}
+$("clr").onclick=()=>{S.set("hist","[]");hist()};
+$("sv").onclick=()=>{S.set("k1",$("k1").value.trim());S.set("k2",$("k2").value.trim());$("svm").textContent="Guardado.";load()};
+$("k1").value=S.get("k1")||"";$("k2").value=S.get("k2")||"";
+$("q").oninput=draw;$("all").onclick=()=>{topOnly=!topOnly;draw()};
+["t1","t2","t3"].forEach((t,i)=>$(t).onclick=()=>{["t1","t2","t3"].forEach((u,j)=>{$(u).classList.toggle("on",i==j);$("p"+(j+1)).hidden=i!=j});if(i==1)hist()});
+days();load();
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
